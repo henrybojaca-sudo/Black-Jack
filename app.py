@@ -1,5 +1,6 @@
 import random
 import streamlit as st
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Palabras Mágicas", page_icon="🌈", layout="centered")
 
@@ -43,6 +44,28 @@ def choose_word(choice: str, target: str):
         st.session_state.feedback_type = "error"
 
 
+def speak_text(text: str):
+    safe_text = text.replace("\\", "\\\\").replace('"', '\\"')
+    components.html(
+        f"""
+        <script>
+          const msg = new SpeechSynthesisUtterance("{safe_text}");
+          msg.lang = 'es-ES';
+          msg.rate = 0.9;
+          msg.pitch = 1.1;
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(msg);
+        </script>
+        """,
+        height=0,
+    )
+
+
+def speak_options(options: list[str]):
+    phrase = "Las opciones son: " + ", ".join(options)
+    speak_text(phrase)
+
+
 st.markdown(
     """
     <style>
@@ -69,6 +92,13 @@ round_data = WORDS[st.session_state.round_index]
 st.markdown("<p class='instruction'>Toca la palabra correcta</p>", unsafe_allow_html=True)
 st.markdown(f"<p class='target'>{round_data['target']}</p>", unsafe_allow_html=True)
 
+if st.button("🔊 Escuchar instrucción"):
+    speak_text(f"Busca la palabra {round_data['target']}")
+
+visible_options = [round_data["options"][option_idx] for option_idx in st.session_state.order]
+if st.button("🔊 Repetir opciones"):
+    speak_options(visible_options)
+
 cols = st.columns(2)
 for idx, option_idx in enumerate(st.session_state.order):
     word = round_data["options"][option_idx]
@@ -83,6 +113,7 @@ for idx, option_idx in enumerate(st.session_state.order):
 if st.session_state.feedback:
     css_class = "success" if st.session_state.feedback_type == "success" else "error"
     st.markdown(f"<p class='feedback {css_class}'>{st.session_state.feedback}</p>", unsafe_allow_html=True)
+    speak_text(st.session_state.feedback)
 else:
     st.markdown("<p class='feedback'>&nbsp;</p>", unsafe_allow_html=True)
 
